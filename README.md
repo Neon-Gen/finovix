@@ -1,2 +1,2 @@
-# finovix
+# Finovix
 A Premium Accounting System
