@@ -1,2 +1,2 @@
 # Finovix
-A Premium Accounting System
+This is the unified README content you want to keep.
