@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { useNotifications } from '../contexts/NotificationContext'
 import { 
   MessageCircle, 
   X, 
@@ -37,6 +38,7 @@ interface ChatCategory {
 
 const LiveChart: React.FC = () => {
   const { user } = useAuth()
+  const { showInfo, showSuccess } = useNotifications()
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
@@ -199,7 +201,7 @@ const LiveChart: React.FC = () => {
 
   const copyMessage = (content: string) => {
     navigator.clipboard.writeText(content)
-    // You could add a toast notification here
+    showSuccess('Copied', 'Message copied to clipboard')
   }
 
   const clearChat = () => {
@@ -208,6 +210,7 @@ const LiveChart: React.FC = () => {
       `Chat cleared! How can I help you today?`,
       selectedCategory
     )
+    showInfo('Chat Cleared', 'Conversation history has been cleared')
   }
 
   const toggleChat = () => {

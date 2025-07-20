@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { useAuth } from './AuthContext'
+import { useNotifications } from './NotificationContext'
 import { supabase } from '../lib/supabase'
 
 interface UserSettings {
@@ -93,6 +94,7 @@ export const useSettings = () => {
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth()
+  const { showSuccess, showError, showDownloadSuccess } = useNotifications()
   const [settings, setSettings] = useState<UserSettings | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -184,13 +186,16 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       if (error) {
         console.error('Error updating settings:', error)
+        showError('Settings Update Failed', 'Failed to save settings. Please try again.')
         return false
       }
 
       setSettings(updatedSettings)
+      showSuccess('Settings Updated', 'Your settings have been saved successfully', { category: 'system' })
       return true
     } catch (error) {
       console.error('Error updating settings:', error)
+      showError('Settings Update Failed', 'An unexpected error occurred while saving settings.')
       return false
     }
   }
@@ -215,13 +220,16 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
       if (error) {
         console.error('Error resetting settings:', error)
+        showError('Settings Reset Failed', 'Failed to reset settings. Please try again.')
         return false
       }
 
       setSettings(resetSettings)
+      showSuccess('Settings Reset', 'Settings have been reset to default values', { category: 'system' })
       return true
     } catch (error) {
       console.error('Error resetting settings:', error)
+      showError('Settings Reset Failed', 'An unexpected error occurred while resetting settings.')
       return false
     }
   }
@@ -260,8 +268,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
+      showDownloadSuccess('Complete Data Export', { category: 'system' })
     } catch (error) {
       console.error('Error exporting data:', error)
+      showError('Export Failed', 'Failed to export data. Please try again.')
       throw error
     }
   }
@@ -281,9 +291,11 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Note: Actual user account deletion would require admin privileges
       // This would typically be handled by a server-side function
       console.log('User data deleted. Account deletion requires admin action.')
+      showSuccess('Account Data Deleted', 'Your account data has been removed from our systems', { category: 'security' })
       return true
     } catch (error) {
       console.error('Error deleting account:', error)
+      showError('Account Deletion Failed', 'Failed to delete account data. Please contact support.')
       return false
     }
   }

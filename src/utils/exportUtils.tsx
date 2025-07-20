@@ -31,112 +31,127 @@ export const formatDate = (date: string | Date) => {
 
 // PDF Export Functions
 export const exportBillsPDF = (bills: any[], userInfo?: any) => {
-  const doc = new jsPDF()
-  
-  // Add company header
-  addPDFHeader(doc, 'Bills Report')
-  
-  // Add summary
-  const totalAmount = bills.reduce((sum, bill) => sum + (bill.total_amount || 0), 0)
-  const paidBills = bills.filter(bill => bill.status === 'paid').length
-  const pendingBills = bills.filter(bill => bill.status !== 'paid').length
-  
-  doc.setFontSize(12)
-  doc.text(`Total Bills: ${bills.length}`, 20, 60)
-  doc.text(`Paid Bills: ${paidBills}`, 20, 70)
-  doc.text(`Pending Bills: ${pendingBills}`, 20, 80)
-  doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, 20, 90)
-  
-  // Add table
-  const tableData = bills.map(bill => [
-    bill.bill_number,
-    bill.customer_name,
-    formatDate(bill.created_at),
-    formatDate(bill.due_date),
-    formatCurrency(bill.total_amount),
-    bill.status.toUpperCase()
-  ])
-  
-  autoTable(doc, {
-    head: [['Bill Number', 'Customer', 'Created', 'Due Date', 'Amount', 'Status']],
-    body: tableData,
-    startY: 100,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [59, 130, 246] }
-  })
-  
-  doc.save(`bills-report-${new Date().toISOString().split('T')[0]}.pdf`)
+  try {
+    const doc = new jsPDF()
+    
+    // Add company header
+    addPDFHeader(doc, 'Bills Report')
+    
+    // Add summary
+    const totalAmount = bills.reduce((sum, bill) => sum + (bill.total_amount || 0), 0)
+    const paidBills = bills.filter(bill => bill.status === 'paid').length
+    const pendingBills = bills.filter(bill => bill.status !== 'paid').length
+    
+    doc.setFontSize(12)
+    doc.text(`Total Bills: ${bills.length}`, 20, 60)
+    doc.text(`Paid Bills: ${paidBills}`, 20, 70)
+    doc.text(`Pending Bills: ${pendingBills}`, 20, 80)
+    doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, 20, 90)
+    
+    // Add table
+    const tableData = bills.map(bill => [
+      bill.bill_number,
+      bill.customer_name,
+      formatDate(bill.created_at),
+      formatDate(bill.due_date),
+      formatCurrency(bill.total_amount),
+      bill.status.toUpperCase()
+    ])
+    
+    autoTable(doc, {
+      head: [['Bill Number', 'Customer', 'Created', 'Due Date', 'Amount', 'Status']],
+      body: tableData,
+      startY: 100,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [59, 130, 246] }
+    })
+    
+    doc.save(`bills-report-${new Date().toISOString().split('T')[0]}.pdf`)
+  } catch (error) {
+    console.error('Error exporting bills PDF:', error)
+    throw new Error('Failed to export PDF')
+  }
 }
 
 export const exportExpensesPDF = (expenses: any[], userInfo?: any) => {
-  const doc = new jsPDF()
-  
-  addPDFHeader(doc, 'Expenses Report')
-  
-  // Add summary
-  const totalAmount = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)
-  const categories = [...new Set(expenses.map(expense => expense.category))]
-  
-  doc.setFontSize(12)
-  doc.text(`Total Expenses: ${expenses.length}`, 20, 60)
-  doc.text(`Categories: ${categories.length}`, 20, 70)
-  doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, 20, 80)
-  
-  // Add table
-  const tableData = expenses.map(expense => [
-    expense.description,
-    expense.category,
-    formatDate(expense.date),
-    formatCurrency(expense.amount)
-  ])
-  
-  autoTable(doc, {
-    head: [['Description', 'Category', 'Date', 'Amount']],
-    body: tableData,
-    startY: 90,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [239, 68, 68] }
-  })
-  
-  doc.save(`expenses-report-${new Date().toISOString().split('T')[0]}.pdf`)
+  try {
+    const doc = new jsPDF()
+    
+    addPDFHeader(doc, 'Expenses Report')
+    
+    // Add summary
+    const totalAmount = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)
+    const categories = [...new Set(expenses.map(expense => expense.category))]
+    
+    doc.setFontSize(12)
+    doc.text(`Total Expenses: ${expenses.length}`, 20, 60)
+    doc.text(`Categories: ${categories.length}`, 20, 70)
+    doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, 20, 80)
+    
+    // Add table
+    const tableData = expenses.map(expense => [
+      expense.description,
+      expense.category,
+      formatDate(expense.date),
+      formatCurrency(expense.amount)
+    ])
+    
+    autoTable(doc, {
+      head: [['Description', 'Category', 'Date', 'Amount']],
+      body: tableData,
+      startY: 90,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [239, 68, 68] }
+    })
+    
+    doc.save(`expenses-report-${new Date().toISOString().split('T')[0]}.pdf`)
+  } catch (error) {
+    console.error('Error exporting expenses PDF:', error)
+    throw new Error('Failed to export PDF')
+  }
 }
 
 export const exportEmployeesPDF = (employees: any[], userInfo?: any) => {
-  const doc = new jsPDF()
-  
-  addPDFHeader(doc, 'Employees Report')
-  
-  // Add summary
-  const activeEmployees = employees.filter(emp => emp.is_active).length
-  const avgHourlyRate = employees.length > 0 
-    ? employees.reduce((sum, emp) => sum + emp.hourly_rate, 0) / employees.length 
-    : 0
-  
-  doc.setFontSize(12)
-  doc.text(`Total Employees: ${employees.length}`, 20, 60)
-  doc.text(`Active Employees: ${activeEmployees}`, 20, 70)
-  doc.text(`Average Hourly Rate: ${formatCurrency(avgHourlyRate)}`, 20, 80)
-  
-  // Add table
-  const tableData = employees.map(employee => [
-    employee.name,
-    employee.position,
-    employee.department,
-    formatCurrency(employee.hourly_rate),
-    formatCurrency(employee.overtime_rate),
-    formatDate(employee.hire_date),
-    employee.is_active ? 'Active' : 'Inactive'
-  ])
-  
-  autoTable(doc, {
-    head: [['Name', 'Position', 'Department', 'Hourly Rate', 'OT Rate', 'Hire Date', 'Status']],
-    body: tableData,
-    startY: 90,
-    styles: { fontSize: 8 },
-    headStyles: { fillColor: [16, 185, 129] }
-  })
-  
-  doc.save(`employees-report-${new Date().toISOString().split('T')[0]}.pdf`)
+  try {
+    const doc = new jsPDF()
+    
+    addPDFHeader(doc, 'Employees Report')
+    
+    // Add summary
+    const activeEmployees = employees.filter(emp => emp.is_active).length
+    const avgHourlyRate = employees.length > 0 
+      ? employees.reduce((sum, emp) => sum + emp.hourly_rate, 0) / employees.length 
+      : 0
+    
+    doc.setFontSize(12)
+    doc.text(`Total Employees: ${employees.length}`, 20, 60)
+    doc.text(`Active Employees: ${activeEmployees}`, 20, 70)
+    doc.text(`Average Hourly Rate: ${formatCurrency(avgHourlyRate)}`, 20, 80)
+    
+    // Add table
+    const tableData = employees.map(employee => [
+      employee.name,
+      employee.position,
+      employee.department,
+      formatCurrency(employee.hourly_rate),
+      formatCurrency(employee.overtime_rate),
+      formatDate(employee.hire_date),
+      employee.is_active ? 'Active' : 'Inactive'
+    ])
+    
+    autoTable(doc, {
+      head: [['Name', 'Position', 'Department', 'Hourly Rate', 'OT Rate', 'Hire Date', 'Status']],
+      body: tableData,
+      startY: 90,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [16, 185, 129] }
+    })
+    
+    doc.save(`employees-report-${new Date().toISOString().split('T')[0]}.pdf`)
+  } catch (error) {
+    console.error('Error exporting employees PDF:', error)
+    throw new Error('Failed to export PDF')
+  }
 }
 
 export const exportAttendancePDF = (attendanceRecords: any[], userInfo?: any) => {
@@ -299,135 +314,150 @@ export const exportPayrollReportPDF = (payrollData: any[], userInfo?: any) => {
 
 // Excel Export Functions
 export const exportBillsExcel = (bills: any[], userInfo?: any) => {
-  const workbook = XLSX.utils.book_new()
-  
-  // Summary sheet
-  const summaryData = [
-    ['Bills Report Summary'],
-    ['Generated on:', formatDate(new Date())],
-    [''],
-    ['Total Bills:', bills.length],
-    ['Paid Bills:', bills.filter(bill => bill.status === 'paid').length],
-    ['Pending Bills:', bills.filter(bill => bill.status !== 'paid').length],
-    ['Total Amount:', bills.reduce((sum, bill) => sum + (bill.total_amount || 0), 0)]
-  ]
-  
-  const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
-  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary')
-  
-  // Bills data sheet
-  const billsData = [
-    ['Bill Number', 'Customer Name', 'Customer Email', 'Customer Phone', 'Created Date', 'Due Date', 'Subtotal', 'Tax Amount', 'Total Amount', 'Status'],
-    ...bills.map(bill => [
-      bill.bill_number,
-      bill.customer_name,
-      bill.customer_email,
-      bill.customer_phone,
-      formatDate(bill.created_at),
-      formatDate(bill.due_date),
-      bill.subtotal,
-      bill.tax_amount,
-      bill.total_amount,
-      bill.status.toUpperCase()
-    ])
-  ]
-  
-  const billsSheet = XLSX.utils.aoa_to_sheet(billsData)
-  XLSX.utils.book_append_sheet(workbook, billsSheet, 'Bills')
-  
-  XLSX.writeFile(workbook, `bills-report-${new Date().toISOString().split('T')[0]}.xlsx`)
+  try {
+    const workbook = XLSX.utils.book_new()
+    
+    // Summary sheet
+    const summaryData = [
+      ['Bills Report Summary'],
+      ['Generated on:', formatDate(new Date())],
+      [''],
+      ['Total Bills:', bills.length],
+      ['Paid Bills:', bills.filter(bill => bill.status === 'paid').length],
+      ['Pending Bills:', bills.filter(bill => bill.status !== 'paid').length],
+      ['Total Amount:', bills.reduce((sum, bill) => sum + (bill.total_amount || 0), 0)]
+    ]
+    
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary')
+    
+    // Bills data sheet
+    const billsData = [
+      ['Bill Number', 'Customer Name', 'Customer Email', 'Customer Phone', 'Created Date', 'Due Date', 'Subtotal', 'Tax Amount', 'Total Amount', 'Status'],
+      ...bills.map(bill => [
+        bill.bill_number,
+        bill.customer_name,
+        bill.customer_email,
+        bill.customer_phone,
+        formatDate(bill.created_at),
+        formatDate(bill.due_date),
+        bill.subtotal,
+        bill.tax_amount,
+        bill.total_amount,
+        bill.status.toUpperCase()
+      ])
+    ]
+    
+    const billsSheet = XLSX.utils.aoa_to_sheet(billsData)
+    XLSX.utils.book_append_sheet(workbook, billsSheet, 'Bills')
+    
+    XLSX.writeFile(workbook, `bills-report-${new Date().toISOString().split('T')[0]}.xlsx`)
+  } catch (error) {
+    console.error('Error exporting bills Excel:', error)
+    throw new Error('Failed to export Excel')
+  }
 }
 
 export const exportExpensesExcel = (expenses: any[], userInfo?: any) => {
-  const workbook = XLSX.utils.book_new()
-  
-  // Summary sheet
-  const totalAmount = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)
-  const categories = [...new Set(expenses.map(expense => expense.category))]
-  
-  const summaryData = [
-    ['Expenses Report Summary'],
-    ['Generated on:', formatDate(new Date())],
-    [''],
-    ['Total Expenses:', expenses.length],
-    ['Categories:', categories.length],
-    ['Total Amount:', totalAmount],
-    [''],
-    ['Category Breakdown:'],
-    ...categories.map(category => {
-      const categoryTotal = expenses
-        .filter(expense => expense.category === category)
-        .reduce((sum, expense) => sum + expense.amount, 0)
-      return [category, categoryTotal]
-    })
-  ]
-  
-  const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
-  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary')
-  
-  // Expenses data sheet
-  const expensesData = [
-    ['Description', 'Category', 'Amount', 'Date', 'Created Date'],
-    ...expenses.map(expense => [
-      expense.description,
-      expense.category,
-      expense.amount,
-      formatDate(expense.date),
-      formatDate(expense.created_at)
-    ])
-  ]
-  
-  const expensesSheet = XLSX.utils.aoa_to_sheet(expensesData)
-  XLSX.utils.book_append_sheet(workbook, expensesSheet, 'Expenses')
-  
-  XLSX.writeFile(workbook, `expenses-report-${new Date().toISOString().split('T')[0]}.xlsx`)
+  try {
+    const workbook = XLSX.utils.book_new()
+    
+    // Summary sheet
+    const totalAmount = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0)
+    const categories = [...new Set(expenses.map(expense => expense.category))]
+    
+    const summaryData = [
+      ['Expenses Report Summary'],
+      ['Generated on:', formatDate(new Date())],
+      [''],
+      ['Total Expenses:', expenses.length],
+      ['Categories:', categories.length],
+      ['Total Amount:', totalAmount],
+      [''],
+      ['Category Breakdown:'],
+      ...categories.map(category => {
+        const categoryTotal = expenses
+          .filter(expense => expense.category === category)
+          .reduce((sum, expense) => sum + expense.amount, 0)
+        return [category, categoryTotal]
+      })
+    ]
+    
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary')
+    
+    // Expenses data sheet
+    const expensesData = [
+      ['Description', 'Category', 'Amount', 'Date', 'Created Date'],
+      ...expenses.map(expense => [
+        expense.description,
+        expense.category,
+        expense.amount,
+        formatDate(expense.date),
+        formatDate(expense.created_at)
+      ])
+    ]
+    
+    const expensesSheet = XLSX.utils.aoa_to_sheet(expensesData)
+    XLSX.utils.book_append_sheet(workbook, expensesSheet, 'Expenses')
+    
+    XLSX.writeFile(workbook, `expenses-report-${new Date().toISOString().split('T')[0]}.xlsx`)
+  } catch (error) {
+    console.error('Error exporting expenses Excel:', error)
+    throw new Error('Failed to export Excel')
+  }
 }
 
 export const exportEmployeesExcel = (employees: any[], userInfo?: any) => {
-  const workbook = XLSX.utils.book_new()
-  
-  // Summary sheet
-  const activeEmployees = employees.filter(emp => emp.is_active).length
-  const departments = [...new Set(employees.map(emp => emp.department))]
-  
-  const summaryData = [
-    ['Employees Report Summary'],
-    ['Generated on:', formatDate(new Date())],
-    [''],
-    ['Total Employees:', employees.length],
-    ['Active Employees:', activeEmployees],
-    ['Departments:', departments.length],
-    [''],
-    ['Department Breakdown:'],
-    ...departments.map(dept => {
-      const deptCount = employees.filter(emp => emp.department === dept).length
-      return [dept, deptCount]
-    })
-  ]
-  
-  const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
-  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary')
-  
-  // Employees data sheet
-  const employeesData = [
-    ['Name', 'Email', 'Phone', 'Position', 'Department', 'Hourly Rate', 'Overtime Rate', 'Hire Date', 'Status'],
-    ...employees.map(employee => [
-      employee.name,
-      employee.email,
-      employee.phone,
-      employee.position,
-      employee.department,
-      employee.hourly_rate,
-      employee.overtime_rate,
-      formatDate(employee.hire_date),
-      employee.is_active ? 'Active' : 'Inactive'
-    ])
-  ]
-  
-  const employeesSheet = XLSX.utils.aoa_to_sheet(employeesData)
-  XLSX.utils.book_append_sheet(workbook, employeesSheet, 'Employees')
-  
-  XLSX.writeFile(workbook, `employees-report-${new Date().toISOString().split('T')[0]}.xlsx`)
+  try {
+    const workbook = XLSX.utils.book_new()
+    
+    // Summary sheet
+    const activeEmployees = employees.filter(emp => emp.is_active).length
+    const departments = [...new Set(employees.map(emp => emp.department))]
+    
+    const summaryData = [
+      ['Employees Report Summary'],
+      ['Generated on:', formatDate(new Date())],
+      [''],
+      ['Total Employees:', employees.length],
+      ['Active Employees:', activeEmployees],
+      ['Departments:', departments.length],
+      [''],
+      ['Department Breakdown:'],
+      ...departments.map(dept => {
+        const deptCount = employees.filter(emp => emp.department === dept).length
+        return [dept, deptCount]
+      })
+    ]
+    
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData)
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary')
+    
+    // Employees data sheet
+    const employeesData = [
+      ['Name', 'Email', 'Phone', 'Position', 'Department', 'Hourly Rate', 'Overtime Rate', 'Hire Date', 'Status'],
+      ...employees.map(employee => [
+        employee.name,
+        employee.email,
+        employee.phone,
+        employee.position,
+        employee.department,
+        employee.hourly_rate,
+        employee.overtime_rate,
+        formatDate(employee.hire_date),
+        employee.is_active ? 'Active' : 'Inactive'
+      ])
+    ]
+    
+    const employeesSheet = XLSX.utils.aoa_to_sheet(employeesData)
+    XLSX.utils.book_append_sheet(workbook, employeesSheet, 'Employees')
+    
+    XLSX.writeFile(workbook, `employees-report-${new Date().toISOString().split('T')[0]}.xlsx`)
+  } catch (error) {
+    console.error('Error exporting employees Excel:', error)
+    throw new Error('Failed to export Excel')
+  }
 }
 
 export const exportAttendanceExcel = (attendanceRecords: any[], userInfo?: any) => {

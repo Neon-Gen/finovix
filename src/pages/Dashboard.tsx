@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
+import { useNotifications } from '../contexts/NotificationContext'
 import { supabase } from '../lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -62,6 +63,7 @@ interface DashboardStats {
 const Dashboard: React.FC = () => {
   const { user } = useAuth()
   const { settings } = useSettings()
+  const { showDownloadSuccess, showError, showInfo } = useNotifications()
   const navigate = useNavigate()
   const [stats, setStats] = useState<DashboardStats>({
     totalRevenue: 0,
@@ -262,9 +264,11 @@ const Dashboard: React.FC = () => {
 
   const handleRefresh = () => {
     fetchDashboardData()
+    showInfo('Dashboard Refreshed', 'Data has been updated with latest information')
   }
 
   const handleExportData = (format: 'pdf' | 'excel') => {
+    try {
     const data = {
       stats,
       exportedAt: new Date().toISOString(),
@@ -281,7 +285,10 @@ const Dashboard: React.FC = () => {
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-    setShowDownloadOptions(false)
+      showDownloadSuccess(`Dashboard Data (${format.toUpperCase()})`, { category: 'system' })
+    } catch (error) {
+      showError('Export Failed', 'Failed to export dashboard data. Please try again.')
+    }
   }
 
 if (loading) {
