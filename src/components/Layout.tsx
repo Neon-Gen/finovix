@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useNotifications } from '../contexts/NotificationContext'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -56,6 +57,7 @@ interface Notification {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, signOut } = useAuth()
+  const { showCreateSuccess, showError } = useNotifications()
   const navigate = useNavigate()
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -132,146 +134,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showUserMenu, showCashbook, showNotifications])
 
-  // Real-time notifications setup
-  useEffect(() => {
-    if (!user) return
-
-    const setupRealtimeNotifications = () => {
-      // Listen for bills changes
-      const billsChannel = supabase
-        .channel('bills-changes')
-        .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'bills', filter: `user_id=eq.${user.id}` },
-          (payload) => {
-            const { eventType, new: newRecord, old: oldRecord } = payload
-            let title = ''
-            let message = ''
-            let type: 'info' | 'success' | 'warning' | 'error' = 'info'
-
-            switch (eventType) {
-              case 'INSERT':
-                title = 'New Bill Created'
-                message = `Bill ${newRecord.bill_number} for ${newRecord.customer_name} has been created`
-                type = 'success'
-                break
-              case 'UPDATE':
-                if (oldRecord.status !== newRecord.status) {
-                  title = 'Bill Status Updated'
-                  message = `Bill ${newRecord.bill_number} status changed to ${newRecord.status}`
-                  type = newRecord.status === 'paid' ? 'success' : 'info'
-                }
-                break
-              case 'DELETE':
-                title = 'Bill Deleted'
-                message = `Bill ${oldRecord.bill_number} has been deleted`
-                type = 'warning'
-                break
-            }
-
-            if (title) {
-              addNotification({ title, message, type })
-            }
-          }
-        )
-        .subscribe()
-
-      // Listen for expenses changes
-      const expensesChannel = supabase
-        .channel('expenses-changes')
-        .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'expenses', filter: `user_id=eq.${user.id}` },
-          (payload) => {
-            const { eventType, new: newRecord, old: oldRecord } = payload
-            let title = ''
-            let message = ''
-            let type: 'info' | 'success' | 'warning' | 'error' = 'info'
-
-            switch (eventType) {
-              case 'INSERT':
-                title = 'New Expense Added'
-                message = `Expense "${newRecord.description}" of ₹${newRecord.amount} has been recorded`
-                type = 'info'
-                break
-              case 'UPDATE':
-                title = 'Expense Updated'
-                message = `Expense "${newRecord.description}" has been updated`
-                type = 'info'
-                break
-              case 'DELETE':
-                title = 'Expense Deleted'
-                message = `Expense "${oldRecord.description}" has been deleted`
-                type = 'warning'
-                break
-            }
-
-            if (title) {
-              addNotification({ title, message, type })
-            }
-          }
-        )
-        .subscribe()
-
-      // Listen for employees changes
-      const employeesChannel = supabase
-        .channel('employees-changes')
-        .on('postgres_changes',
-          { event: '*', schema: 'public', table: 'employees', filter: `user_id=eq.${user.id}` },
-          (payload) => {
-            const { eventType, new: newRecord, old: oldRecord } = payload
-            let title = ''
-            let message = ''
-            let type: 'info' | 'success' | 'warning' | 'error' = 'info'
-
-            switch (eventType) {
-              case 'INSERT':
-                title = 'New Employee Added'
-                message = `${newRecord.name} has been added to ${newRecord.department}`
-                type = 'success'
-                break
-              case 'UPDATE':
-                if (oldRecord.is_active !== newRecord.is_active) {
-                  title = 'Employee Status Changed'
-                  message = `${newRecord.name} has been ${newRecord.is_active ? 'activated' : 'deactivated'}`
-                  type = newRecord.is_active ? 'success' : 'warning'
-                }
-                break
-              case 'DELETE':
-                title = 'Employee Removed'
-                message = `${oldRecord.name} has been removed from the system`
-                type = 'warning'
-                break
-            }
-
-            if (title) {
-              addNotification({ title, message, type })
-            }
-          }
-        )
-        .subscribe()
-
-      return () => {
-        supabase.removeChannel(billsChannel)
-        supabase.removeChannel(expensesChannel)
-        supabase.removeChannel(employeesChannel)
-      }
-    }
-
-    const cleanup = setupRealtimeNotifications()
-    return cleanup
-  }, [user])
-
-  const addNotification = ({ title, message, type }: { title: string; message: string; type: 'info' | 'success' | 'warning' | 'error' }) => {
-    const notification: Notification = {
-      id: Date.now().toString(),
-      title,
-      message,
-      type,
-      timestamp: new Date(),
-      read: false
-    }
-    
-    setNotifications(prev => [notification, ...prev.slice(0, 49)]) // Keep only 50 notifications
-  }
 
   const markAsRead = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
@@ -292,7 +154,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       if (data.type === 'income') {
         // Create a bill entry for income
         const billNumber = `CASH-${Date.now()}`
-        await supabase.from('bills').insert({
+        const { error } = await supabase.from('bills').insert({
           user_id: user.id,
           bill_number: billNumber,
           customer_name: 'Cash Entry',
@@ -306,33 +168,35 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           due_date: data.date,
           created_at: new Date(data.date).toISOString()
         })
+        
+        if (error) {
+          showError('Cashbook Entry Failed', 'Failed to create income entry. Please try again.')
+          throw error
+        }
       } else {
         // Create an expense entry
-        await supabase.from('expenses').insert({
+        const { error } = await supabase.from('expenses').insert({
           user_id: user.id,
           description: data.description,
           amount: data.amount,
           category: 'Other Expenses',
           date: data.date
         })
+        
+        if (error) {
+          showError('Cashbook Entry Failed', 'Failed to create expense entry. Please try again.')
+          throw error
+        }
       }
 
       setShowCashbook(false)
       reset()
       
-      // Add success notification
-      addNotification({
-        title: 'Cashbook Entry Added',
-        message: `${data.type === 'income' ? 'Income' : 'Expense'} of ₹${data.amount} has been recorded`,
-        type: 'success'
+      showCreateSuccess('Cashbook Entry', `${data.type === 'income' ? 'Income' : 'Expense'} of ₹${data.amount}`, { 
+        category: data.type === 'income' ? 'bill' : 'expense' 
       })
     } catch (error) {
       console.error('Error saving cashbook entry:', error)
-      addNotification({
-        title: 'Error',
-        message: 'Failed to save cashbook entry',
-        type: 'error'
-      })
     }
   }
 
@@ -870,11 +734,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                             whileTap={{ scale: 0.98 }}
                             onClick={handleSignOut}
                             className="flex items-center gap-3 w-full p-3 text-sm font-semibold text-black hover:bg-gray-100 rounded-2xl transition-all duration-200"
-                          >
-                            <LogOut className="h-4 w-4" />
-                            <span>Sign out</span>
-                          </motion.button>
-                        </div>
+                  showCreateSuccess('Goals', 'Monthly goals have been saved successfully', { category: 'system' })
                       </motion.div>
                     )}
                   </AnimatePresence>

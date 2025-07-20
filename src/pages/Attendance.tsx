@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
+import { useNotifications } from '../contexts/NotificationContext'
 import { supabase } from '../lib/supabase'
 import {
   Plus,
@@ -60,6 +61,7 @@ interface AttendanceFormData {
 const Attendance: React.FC = () => {
   const { user } = useAuth()
   const { settings } = useSettings()
+  const { showCreateSuccess, showUpdateSuccess, showDeleteSuccess, showError, showInfo } = useNotifications()
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
@@ -215,8 +217,10 @@ const Attendance: React.FC = () => {
         setAttendanceRecords(prev => prev.map(record => 
           record.id === editingRecord.id ? newRecord : record
         ))
+        showUpdateSuccess('Attendance', `${employee.name} - ${data.date}`, { category: 'attendance' })
       } else {
         setAttendanceRecords(prev => [...prev.filter(r => r.employee_id !== data.employee_id || r.date !== data.date), newRecord])
+        showCreateSuccess('Attendance', `${employee.name} - ${data.date}`, { category: 'attendance' })
       }
 
       setShowMarkForm(false)
@@ -224,25 +228,31 @@ const Attendance: React.FC = () => {
       reset()
     } catch (error) {
       console.error('Error saving attendance:', error)
+      showError('Save Failed', 'Failed to save attendance record. Please try again.')
     }
   }
 
   const markAbsent = (employee: Employee) => {
-    const absentRecord: AttendanceRecord = {
-      id: `attendance-${employee.id}-${selectedDate}`,
-      employee_id: employee.id,
-      employee: employee,
-      date: selectedDate,
-      check_in: '',
-      check_out: undefined,
-      regular_hours: 0,
-      overtime_hours: 0,
-      total_pay: 0,
-      status: 'absent',
-      created_at: new Date().toISOString()
-    }
+    try {
+      const absentRecord: AttendanceRecord = {
+        id: `attendance-${employee.id}-${selectedDate}`,
+        employee_id: employee.id,
+        employee: employee,
+        date: selectedDate,
+        check_in: '',
+        check_out: undefined,
+        regular_hours: 0,
+        overtime_hours: 0,
+        total_pay: 0,
+        status: 'absent',
+        created_at: new Date().toISOString()
+      }
 
-    setAttendanceRecords(prev => [...prev.filter(r => r.employee_id !== employee.id || r.date !== selectedDate), absentRecord])
+      setAttendanceRecords(prev => [...prev.filter(r => r.employee_id !== employee.id || r.date !== selectedDate), absentRecord])
+      showInfo('Marked Absent', `${employee.name} has been marked absent for ${selectedDate}`, { category: 'attendance' })
+    } catch (error) {
+      showError('Mark Absent Failed', 'Failed to mark employee as absent. Please try again.')
+    }
   }
 
   const startEdit = (record: AttendanceRecord) => {
@@ -256,8 +266,10 @@ const Attendance: React.FC = () => {
   }
 
   const deleteRecord = (id: string) => {
-    if (confirm('Are you sure you want to delete this attendance record?')) {
+    const record = attendanceRecords.find(r => r.id === id)
+    if (confirm(`Are you sure you want to delete attendance record for ${record?.employee?.name}?`)) {
       setAttendanceRecords(prev => prev.filter(record => record.id !== id))
+      showDeleteSuccess('Attendance Record', record?.employee?.name || 'Record', { category: 'attendance' })
     }
   }
 

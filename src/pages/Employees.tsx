@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
+import { useNotifications } from '../contexts/NotificationContext'
 import { supabase } from '../lib/supabase'
 import {
   Plus,
@@ -60,6 +61,7 @@ interface EmployeeFormData {
 const Employees: React.FC = () => {
   const { user } = useAuth()
   const { settings } = useSettings()
+  const { showCreateSuccess, showUpdateSuccess, showDeleteSuccess, showDownloadSuccess, showStatusChange, showError } = useNotifications()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -125,7 +127,11 @@ const Employees: React.FC = () => {
           .update(data)
           .eq('id', editingEmployee.id)
 
-        if (error) throw error
+        if (error) {
+          showError('Update Failed', 'Failed to update employee. Please try again.')
+          throw error
+        }
+        showUpdateSuccess('Employee', data.name, { category: 'employee' })
       } else {
         const { error } = await supabase
           .from('employees')
@@ -135,7 +141,11 @@ const Employees: React.FC = () => {
             is_active: true
           }])
 
-        if (error) throw error
+        if (error) {
+          showError('Creation Failed', 'Failed to create employee. Please try again.')
+          throw error
+        }
+        showCreateSuccess('Employee', data.name, { category: 'employee' })
       }
 
       await fetchEmployees()
@@ -154,7 +164,11 @@ const Employees: React.FC = () => {
         .update({ is_active: !employee.is_active })
         .eq('id', employee.id)
 
-      if (error) throw error
+      if (error) {
+        showError('Status Update Failed', 'Failed to update employee status. Please try again.')
+        throw error
+      }
+      showStatusChange('Employee', employee.name, employee.is_active ? 'Inactive' : 'Active', { category: 'employee' })
       await fetchEmployees()
     } catch (error) {
       console.error('Error updating employee status:', error)
@@ -162,7 +176,8 @@ const Employees: React.FC = () => {
   }
 
   const deleteEmployee = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this employee?')) return
+    const employee = employees.find(e => e.id === id)
+    if (!confirm(`Are you sure you want to delete "${employee?.name}"?`)) return
 
     try {
       const { error } = await supabase
@@ -170,7 +185,11 @@ const Employees: React.FC = () => {
         .delete()
         .eq('id', id)
 
-      if (error) throw error
+      if (error) {
+        showError('Delete Failed', 'Failed to delete employee. Please try again.')
+        throw error
+      }
+      showDeleteSuccess('Employee', employee?.name || 'Employee', { category: 'employee' })
       await fetchEmployees()
     } catch (error) {
       console.error('Error deleting employee:', error)
@@ -234,7 +253,11 @@ const Employees: React.FC = () => {
         .delete()
         .in('id', selectedEmployees)
 
-      if (error) throw error
+      if (error) {
+        showError('Bulk Delete Failed', 'Failed to delete selected employees. Please try again.')
+        throw error
+      }
+      showDeleteSuccess('Employees', `${selectedEmployees.length} employees`, { category: 'employee' })
       await fetchEmployees()
       clearSelection()
     } catch (error) {
@@ -287,11 +310,21 @@ const Employees: React.FC = () => {
   }
 
   const handleExportPDF = () => {
-    exportEmployeesPDF(filteredEmployees, user)
+    try {
+      exportEmployeesPDF(filteredEmployees, user)
+      showDownloadSuccess('Employees Report (PDF)', { category: 'employee' })
+    } catch (error) {
+      showError('Export Failed', 'Failed to export PDF. Please try again.')
+    }
   }
 
   const handleExportExcel = () => {
-    exportEmployeesExcel(filteredEmployees, user)
+    try {
+      exportEmployeesExcel(filteredEmployees, user)
+      showDownloadSuccess('Employees Report (Excel)', { category: 'employee' })
+    } catch (error) {
+      showError('Export Failed', 'Failed to export Excel. Please try again.')
+    }
   }
 
   if (loading) {

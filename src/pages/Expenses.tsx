@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
+import { useNotifications } from '../contexts/NotificationContext'
 import { supabase } from '../lib/supabase'
 import {
   Plus,
@@ -66,6 +67,7 @@ interface ExpenseFormData {
 const Expenses: React.FC = () => {
   const { user } = useAuth()
   const { settings } = useSettings()
+  const { showCreateSuccess, showUpdateSuccess, showDeleteSuccess, showDownloadSuccess, showError } = useNotifications()
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
@@ -151,7 +153,11 @@ const Expenses: React.FC = () => {
           .update(data)
           .eq('id', editingExpense.id)
 
-        if (error) throw error
+        if (error) {
+          showError('Update Failed', 'Failed to update expense. Please try again.')
+          throw error
+        }
+        showUpdateSuccess('Expense', data.description, { category: 'expense' })
       } else {
         const { error } = await supabase
           .from('expenses')
@@ -160,7 +166,11 @@ const Expenses: React.FC = () => {
             ...data
           }])
 
-        if (error) throw error
+        if (error) {
+          showError('Creation Failed', 'Failed to create expense. Please try again.')
+          throw error
+        }
+        showCreateSuccess('Expense', data.description, { category: 'expense' })
       }
 
       await fetchExpenses()
@@ -173,7 +183,8 @@ const Expenses: React.FC = () => {
   }
 
   const deleteExpense = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this expense?')) return
+    const expense = expenses.find(e => e.id === id)
+    if (!confirm(`Are you sure you want to delete "${expense?.description}"?`)) return
 
     try {
       const { error } = await supabase
@@ -181,7 +192,11 @@ const Expenses: React.FC = () => {
         .delete()
         .eq('id', id)
 
-      if (error) throw error
+      if (error) {
+        showError('Delete Failed', 'Failed to delete expense. Please try again.')
+        throw error
+      }
+      showDeleteSuccess('Expense', expense?.description || 'Expense', { category: 'expense' })
       await fetchExpenses()
     } catch (error) {
       console.error('Error deleting expense:', error)
@@ -237,7 +252,11 @@ const Expenses: React.FC = () => {
         .delete()
         .in('id', selectedExpenses)
 
-      if (error) throw error
+      if (error) {
+        showError('Bulk Delete Failed', 'Failed to delete selected expenses. Please try again.')
+        throw error
+      }
+      showDeleteSuccess('Expenses', `${selectedExpenses.length} expenses`, { category: 'expense' })
       await fetchExpenses()
       clearSelection()
     } catch (error) {
@@ -296,11 +315,21 @@ const Expenses: React.FC = () => {
   })
 
   const handleExportPDF = () => {
-    exportExpensesPDF(filteredExpenses, user)
+    try {
+      exportExpensesPDF(filteredExpenses, user)
+      showDownloadSuccess('Expenses Report (PDF)', { category: 'expense' })
+    } catch (error) {
+      showError('Export Failed', 'Failed to export PDF. Please try again.')
+    }
   }
 
   const handleExportExcel = () => {
-    exportExpensesExcel(filteredExpenses, user)
+    try {
+      exportExpensesExcel(filteredExpenses, user)
+      showDownloadSuccess('Expenses Report (Excel)', { category: 'expense' })
+    } catch (error) {
+      showError('Export Failed', 'Failed to export Excel. Please try again.')
+    }
   }
 
   if (loading) {
