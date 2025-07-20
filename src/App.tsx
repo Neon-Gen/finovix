@@ -16,6 +16,7 @@ import Employees from './pages/Employees'
 import Attendance from './pages/Attendance'
 import Reports from './pages/Reports'
 import Settings from './pages/Settings'
+import LiveChart from './components/LiveChart'
 
 function App() {
   return (
@@ -110,6 +111,7 @@ function App() {
                 />
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
               </Routes>
+              <LiveChart />
           </Router>
         </SettingsProvider>
       </NotificationProvider>

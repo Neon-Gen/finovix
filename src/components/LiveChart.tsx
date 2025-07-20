@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { useNotifications } from '../contexts/NotificationContext'
 import { 
   MessageCircle, 
   X, 
@@ -19,6 +18,7 @@ import {
   ThumbsDown
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { useNotifications } from '../contexts/NotificationContext'
 
 interface Message {
   id: string
@@ -38,7 +38,6 @@ interface ChatCategory {
 
 const LiveChart: React.FC = () => {
   const { user } = useAuth()
-  const { showInfo, showSuccess } = useNotifications()
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
@@ -201,7 +200,7 @@ const LiveChart: React.FC = () => {
 
   const copyMessage = (content: string) => {
     navigator.clipboard.writeText(content)
-    showSuccess('Copied', 'Message copied to clipboard')
+    // You could add a toast notification here
   }
 
   const clearChat = () => {
@@ -210,7 +209,6 @@ const LiveChart: React.FC = () => {
       `Chat cleared! How can I help you today?`,
       selectedCategory
     )
-    showInfo('Chat Cleared', 'Conversation history has been cleared')
   }
 
   const toggleChat = () => {
