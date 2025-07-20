@@ -734,7 +734,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                             whileTap={{ scale: 0.98 }}
                             onClick={handleSignOut}
                             className="flex items-center gap-3 w-full p-3 text-sm font-semibold text-black hover:bg-gray-100 rounded-2xl transition-all duration-200"
-                  showCreateSuccess('Goals', 'Monthly goals have been saved successfully', { category: 'system' })
+                          >
+                            <LogOut className="mr-3 h-5 w-5" />
+                            <span>Sign out</span>
+                          </motion.button>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
