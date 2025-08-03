@@ -32,8 +32,6 @@ interface UserSettings {
   analytics_tracking: boolean
   marketing_emails: boolean
   two_factor_auth: boolean
-  
-  auto_logout_enabled: boolean
   // App preferences
   currency: string
   date_format: string
@@ -73,7 +71,6 @@ const defaultSettings: UserSettings = {
   analytics_tracking: true,
   marketing_emails: false,
   two_factor_auth: false,
-  auto_logout_enabled: true,
   currency: 'INR',
   date_format: 'DD/MM/YYYY',
   time_format: '24h',
